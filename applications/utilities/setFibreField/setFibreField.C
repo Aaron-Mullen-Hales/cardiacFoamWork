@@ -21,11 +21,23 @@ Application
 Description
     Set the initial fibre field for cardiac simulations.
 
-    The utility currently sets the fibre field for the Land et al. (2015)
-    ellipsoidal ventricle benchmarks.
+    The utility currently sets the fibre field for ellipsoidal ventricle
+    benchmark cases from:
+
+      - Land et al., Verification of cardiac mechanics software: benchmark
+        problems and solutions for testing active and passive material
+        behaviour. Proc. R. Soc. A. 471: 20150641. 2015,
+        doi.org/10.1098/rspa.2015.0641
+
+      - Arósticaet et al., A software benchmark for cardiac elastodynamics,
+        Computer Methods in Applied Mechanics and Engineering, 435, 2025,
+        10.1016/j.cma.2024.117485.
+
+    WORJ IN PROGRESS: add flag to switch between both approaches
 
 Author
     Philip Cardiff, UCD.
+    Aaron Mullen Hales, UCD.
 
 \*---------------------------------------------------------------------------*/
 
@@ -44,18 +56,25 @@ int main(int argc, char *argv[])
 
     // Read the transmural distance field
     // This will be calculated using the given boundary conditions
-    // -A: Note that transmural distance is the shortest distance from the endo to epicardinal layers
+    // -A: Note that transmural distance is the shortest distance from the endo
+    // to epicardinal layers
 
-    // -A: note that t here is openfoams version of cout/print/logging utility... the endl creates a new line at the end
+    // -A: note that t here is openfoams version of cout/print/logging
+    // utility... the endl creates a new line at the end
     Info<< "Reading t" << endl;
-    //-A: volScalarField is a class within openfoam that creates a scalar field for the centre of each volume block.
+    //-A: volScalarField is a class within openfoam that creates a scalar field
+    // for the centre of each volume block.
     // This part of the code is creating a scalar field for t.
 
-    // -A: IO here is for creating an object in openfoam. t here is the name if the object.
-    // runTime.timeName() is for specifying the current time domain. I.e "0" or "140" ect.
+    // -A: IO here is for creating an object in openfoam. t here is the name if
+    // the object.
+    // runTime.timeName() is for specifying the current time domain. I.e "0" or
+    // "140" etc.
     // mesh associates the field with a computational mesh.
-    // IOobject::MUST_READ means there must be a t file in the "0" directory to read from.
-    // IOobject::AUTO_WRITE ensure that t is automatically saved when creating results.
+    // IOobject::MUST_READ means there must be a t file in the "0" directory to
+    // read from.
+    // IOobject::AUTO_WRITE ensure that t is automatically saved when creating
+    // results.
     volScalarField t
     (
         IOobject
@@ -72,20 +91,35 @@ int main(int argc, char *argv[])
     // Solve diffusion equation to calculate the transmural distance (t)
     // Set fixedValue = 0.0 on the endocardium and fixedValue = 1.0 on the
     // epicardium, with zeroGradient on other patches
-    // -A: logging that we are solving the diffusion equation for t. We are treating it as a heat propogation throughout the mesh to
+    // -A: logging that we are solving the diffusion equation for t. We are
+    // treating it as a heat propogation throughout the mesh to
     // get the values within the mesh.
     Info<< "Solving the diffusion equation for t" << endl;
-    // -A: diffusion equation... steady state so just the laplacian? should this be steady state? because of incompressibility?
+    // -A: diffusion equation... steady state so just the laplacian?
+    //     Philip: yes; just Laplacian equation
+    // should this be steady state? Philip: yes; this is the definition given
+    // because of incompressibility? Philip: not related, t is just defined as
+    // the solution to the Laplace equation 
     // Does this make sense? for instance should it be steady state? or should the transmural directions evolve?
+    //     Philip: note that this is the "initial" t; that is all we are setting
+    //     here. The deformation/evolution of t is the responsibility of the
+    //     solver
     fvScalarMatrix tEqn(fvm::laplacian(t));
     //-A: solving the diffusion equation.
     tEqn.solve();
+
     Info<< "Writing t" << endl;
     // -A: saving t values.
     t.write();
 
     // Base direction as per Rossi-Lassila et al. approach
     const vector k(0, 0, 1);
+
+    // Philip: Aaron, can you please update the notation and expressions below to
+    // exactly follow Arostica et al? And given the equation number for each
+    // expression to make it clear where they come from
+    // Also, et is defined as dx/dt in Arostica, not dt/dx (fvc::grad(t)): we
+    // should directly differentiate Eq 12 to get et, eMu, and eTheta
 
     // Transmural direction
     //-A: calculating the vector field of the gradient of transmural direction and normalising it
